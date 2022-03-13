@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";		//https://eips.ethereum.org/EIPS/eip-721
 // import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "./interfaces/IERC721URI.sol";   // Includes tokenURI()
+import "./interfaces/IERC721URI.sol";   // Also Includes tokenURI()
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 /**
- * This is a Copycat NFT
+ * Revision 221103
+ * @title This is a Copycat NFT
  * - It forwards URI Requests to a destination NFT
  * - Destination NFT must be owned by same account when the copy is made
  * - ... Should probably validate that the destination NFT is still owned by the same account
@@ -37,7 +38,7 @@ contract Copycat is ERC721 {
     event URI(string value, uint256 indexed id);    //Copied from ERC1155
 
     /**
-	 * Constructor
+	 * @dev Constructor
 	 */
     constructor() ERC721("NFT Proxy", "COPYCAT") {
 
@@ -75,72 +76,64 @@ contract Copycat is ERC721 {
     /** 
      * @dev Decouple Tokens
      */
-    function _unSetForward(uint256 token_id) private {
-        delete _forward[token_id];
+    function _unSetForward(uint256 tokenId) private {
+        delete _forward[tokenId];
     }
 
     /**
      * @dev Decouple Tokens (By Owner)
      */
-    function unSetForward(uint256 token_id) external {
-        require(_isApprovedOrOwner(_msgSender(), token_id), "Caller is not owner nor approved");
-        _unSetForward(token_id);
+    function unSetForward(uint256 tokenId) external {
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "Caller is not owner nor approved");
+        _unSetForward(tokenId);
         //Emit URI Event
-        emit URI('', token_id);
+        emit URI("", tokenId);
     }
 
     /**
      * @dev Set Destination Token
      */
-    function setForward(uint256 token_id, address destContract, uint256 destTokenId) public {
+    function setForward(uint256 tokenId, address destContract, uint256 destTokenId) public {
         //Validate
-        require(_isApprovedOrOwner(_msgSender(), token_id), "Caller is not owner nor approved");
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "Caller is not owner nor approved");
         require(_msgSender() == IERC721URI(destContract).ownerOf(destTokenId), "Caller is Not Target Token Owner");
         //Check if Contract Exists & It's an ERC721 or Compatible
         require(IERC721URI(destContract).supportsInterface(0x80ac58cd), "Destination Contract is Not ERC721 Compatible");
         //Set
-        _forward[token_id]._contract = destContract;    //ERC721
-        _forward[token_id]._id = destTokenId;
+        _forward[tokenId]._contract = destContract;    //ERC721
+        _forward[tokenId]._id = destTokenId;
         //Emit URI Event
-        emit URI(tokenURI(token_id), token_id);
+        emit URI(tokenURI(tokenId), tokenId);
     }
 
     /**
      * @dev Forward token URI Requests to Destination Token
      */
-    function tokenURI(uint256 token_id) public view override returns (string memory) {
-        //Validate
-        // require(ownerOf(token_id) == IERC721URI(_forward[token_id]._contract).ownerOf(_forward[token_id]._id), "No Longer Token Owner"); //ERROR: The called function should be payable if you send value and the value you send should be less than your current balance.
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
         //Forward
-        return IERC721URI(_forward[token_id]._contract).tokenURI(_forward[token_id]._id);
+        return IERC721URI(_forward[tokenId]._contract).tokenURI(_forward[tokenId]._id);
     }
 
     /**
-     * @dev forward token URI Requests to destination token
+     * @dev forward token's ownership Requests to destination token
      */
-    function ownerOf(uint256 token_id) public view override returns (address) {
-        if(_forward[token_id]._contract == address(0)) return address(0);
+    function ownerOf(uint256 tokenId) public view override returns (address) {
+        if(_forward[tokenId]._contract == address(0)) return address(0);
         //Forward
-        return IERC721URI(_forward[token_id]._contract).ownerOf(_forward[token_id]._id);
+        return IERC721URI(_forward[tokenId]._contract).ownerOf(_forward[tokenId]._id);
     }
 
-    /**
-     * @dev Make sure that Destination token is Still owned By the same Owenr
+    /** [CANCELLED] Now tracking ownership as well
+     * @dev Make sure that Destination token is Still owned By the same Owner
      * - Can be called by anyone
-     */
-    function validateToken(uint256 token_id) public {
+     
+    function validateToken(uint256 tokenId) public {
         //If Not Token Owner
-        if(ownerOf(token_id) != IERC721URI(_forward[token_id]._contract).ownerOf(_forward[token_id]._id)){
+        if(ownerOf(tokenId) != IERC721URI(_forward[tokenId]._contract).ownerOf(_forward[tokenId]._id)){
             //Decouple Tokens
-            _unSetForward(token_id);
+            _unSetForward(tokenId);
         }
     }
-
-    /**
-     * [DEV] Try Self Destruct
-     */
-    function selfDestruct(address _address) public { 
-        selfdestruct(payable(_address)); 
-    }
+    */
 
 }
