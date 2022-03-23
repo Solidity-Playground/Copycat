@@ -1,4 +1,4 @@
-# Copycat
+# Copycat - NFT Inheritance 
 Mint token proxies that return the contents of other NFTs
 An ERC721 that inherits its properties from another ERC721 you own.
 
